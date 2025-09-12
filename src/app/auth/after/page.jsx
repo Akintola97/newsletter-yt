@@ -1,5 +1,6 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/dist/server/api-utils";
+import {prisma} from "@/lib/prisma"
 
 export default async function AfterLogin() {
   const { isAuthenticated, getUser } = getKindeServerSession();
