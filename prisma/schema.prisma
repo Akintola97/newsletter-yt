@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+
+enum Frequency {
+  DAILY
+  BIWEEKLY
+  MONTHLY
+}
+
+model User {
+  id          String      @id @default(cuid())
+  kindeId     String      @unique
+  email       String      @unique
+  name        String?
+  createdAt   DateTime    @default(now())
+  preferences Preference?
+  deliveries  Delivery[]
+
+  @@index([createdAt])
+}
+
+model Preference {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+
+  frequency  Frequency @default(DAILY)
+  topics     String?
+  lastSentAt DateTime?
+  nextSendAt DateTime?
+
+  paused     Boolean   @default(false)
+
+  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime  @default(now())
+
+  @@index([nextSendAt])
+}
+
+model Issue {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+
+  // Existing
+  title      String
+  html       String
+  metaJson   String?
+
+  // NEW: snapshot for quick admin scanning
+  subject    String     @default("")   // mirrors email subject used
+  topics     String?                     // comma-separated effective topics
+
+  deliveries Delivery[]
+
+  @@index([createdAt])
+}
+
+model Delivery {
+  id        String   @id @default(cuid())
+  userId    String
+  issueId   String
+  sentAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // Email metadata
+  subject   String   @default("")
+  status    String
+  error     String?
+
+  // Recipient snapshot (so you can see “who got what” at a glance)
+  toEmail   String?
+  toName    String?
+
+  // NEW: topics snapshot used for THIS user’s send
+  topics    String?                   // comma-separated effective topics
+
+  user      User     @relation(fields: [userId], references: [id])
+  issue     Issue    @relation(fields: [issueId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([issueId, createdAt])
+}
